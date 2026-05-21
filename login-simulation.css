@@ -1,0 +1,279 @@
+:root {
+  color-scheme: dark;
+  --page: #202124;
+  --card: #0f0f10;
+  --card-border: #2f3033;
+  --text: #f1f3f4;
+  --muted: #bdc1c6;
+  --line: #5f6368;
+  --focus: #8ab4f8;
+  --button: #a8c7fa;
+  --button-text: #062e6f;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  background: var(--page);
+  color: var(--text);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+a {
+  color: var(--focus);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+a:hover,
+a:focus {
+  text-decoration: underline;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+.login-page {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 42px 24px;
+}
+
+.login-card {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(320px, 1fr);
+  width: min(1040px, 100%);
+  min-height: 360px;
+  border-radius: 28px;
+  background: var(--card);
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.28);
+  padding: 36px;
+}
+
+.brand-zone {
+  padding-right: 36px;
+}
+
+h1 {
+  margin: 0 0 14px;
+  font-size: clamp(2rem, 4vw, 3.1rem);
+  font-weight: 500;
+  letter-spacing: -0.04em;
+}
+
+.brand-zone p,
+.privacy-note {
+  color: var(--muted);
+  margin: 0;
+}
+
+.form-zone {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.form-step {
+  display: none;
+  flex-direction: column;
+}
+
+.form-step.is-active {
+  display: flex;
+}
+
+.account-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  width: max-content;
+  max-width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  margin-bottom: 28px;
+  padding: 4px 12px 4px 4px;
+}
+
+.account-chip__avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #5f6368;
+}
+
+.account-chip__email {
+  overflow: hidden;
+  font-size: 0.9rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-chip__chevron {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.field-group {
+  position: relative;
+  margin-bottom: 10px;
+}
+
+.field-group label {
+  position: absolute;
+  top: -9px;
+  left: 12px;
+  background: var(--card);
+  color: var(--focus);
+  font-size: 0.78rem;
+  padding: 0 6px;
+}
+
+.field-group input {
+  width: 100%;
+  height: 56px;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: transparent;
+  color: var(--text);
+  outline: none;
+  padding: 0 14px;
+}
+
+.field-group input::placeholder {
+  color: var(--muted);
+}
+
+.field-group input:focus {
+  border-color: var(--focus);
+  box-shadow: 0 0 0 1px var(--focus);
+}
+
+.helper-link {
+  align-self: flex-start;
+  margin-bottom: 36px;
+  font-size: 0.9rem;
+}
+
+.privacy-note {
+  max-width: 490px;
+  font-size: 0.9rem;
+}
+
+.save-status {
+  color: #81c995;
+  font-size: 0.85rem;
+  margin: 0 0 12px;
+}
+
+.save-status.is-error {
+  color: #f28b82;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 34px;
+}
+
+button {
+  min-width: 96px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--button);
+  color: var(--button-text);
+  cursor: pointer;
+  font-weight: 700;
+  padding: 11px 22px;
+}
+
+button:hover,
+button:focus {
+  filter: brightness(1.05);
+}
+
+.login-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: min(1040px, 100%);
+  color: var(--muted);
+  font-size: 0.78rem;
+  margin-top: 18px;
+}
+
+.login-footer label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+
+.login-footer select {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  outline: none;
+}
+
+.login-footer nav {
+  display: flex;
+  gap: 34px;
+}
+
+.login-footer a {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+@media (max-width: 760px) {
+  .login-page {
+    min-height: auto;
+    padding: 32px 16px;
+  }
+
+  .login-card {
+    grid-template-columns: 1fr;
+    gap: 34px;
+    padding: 28px;
+  }
+
+  .brand-zone {
+    padding-right: 0;
+  }
+
+  .actions,
+  .login-footer,
+  .login-footer nav {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 16px;
+  }
+}
+
+@media print {
+  .login-footer {
+    position: static;
+  }
+
+  body {
+    background: #ffffff;
+    color: #111111;
+  }
+
+  .login-card {
+    box-shadow: none;
+  }
+}
