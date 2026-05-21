@@ -58,6 +58,17 @@ select {
   padding: 36px;
 }
 
+.login-card--harvester {
+  grid-template-columns: 1fr;
+  max-width: 480px;
+}
+
+.harvester-form {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
 .brand-zone {
   padding-right: 36px;
 }

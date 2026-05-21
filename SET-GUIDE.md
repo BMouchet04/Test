@@ -1,43 +1,56 @@
-# SET : pourquoi tu ne vois que GET /
+# SET Credential Harvester — guide rapide
 
-## Explication
+## Erreur dans ta config SET
 
-| Port | Ce qui se passe |
-|------|-----------------|
-| **80** (SET) | La page envoie un **formulaire POST** vers `/` → SET affiche les identifiants |
-| **8765** (python server.py) | La page envoie un **fetch JSON** → affichage dans le terminal Python |
+Tu as saisi : `127.0;0.1` (point-virgule) au lieu de `127.0.0.1` (points).
 
-Si la page clonee utilise encore l'ancienne version (fetch vers 8765), SET n'affichera **jamais** de POST, seulement `GET /`.
+Utilise :
+- **`127.0.0.1`** si tu testes sur la meme machine que SET
+- **`172.17.216.224`** si tu testes depuis une autre machine (IP affichee par SET/WSL)
 
-## Procedure SET (terminal SET doit afficher POST)
+## Pourquoi seulement GET / ?
 
-1. **Pousser** la derniere `login-simulation.html` sur GitHub et attendre 1-2 min
-2. Lancer SET, cloner : `https://bmouchet04.github.io/Test/login-simulation.html`
-3. Ouvrir : `http://127.0.0.1/` ou `http://172.17.216.224/` (port **80**, pas GitHub, pas :8765)
-4. **Ne pas** lancer `python server.py` pour ce test (optionnel)
-5. Parcours complet : e-mail → Suivant → mot de passe → Suivant
+SET reecrit les formulaires au moment du **clone**. La page en 2 etapes (`login-simulation.html` + JavaScript) ne convient souvent pas.
 
-Resultat attendu dans SET :
-```text
-POST / HTTP/1.1
-username=xxx&password=yyy
+**Solution :** cloner la page simple avec formulaire standard :
+
+```
+https://bmouchet04.github.io/Test/login-harvester.html
 ```
 
-## Procedure Python (sans SET)
+Cette page a `username` + `password` visibles et `method="POST"` `action="/"` sans JavaScript.
+
+## Procedure
+
+1. Pousser sur GitHub : `login-harvester.html` (+ CSS)
+2. Arreter SET (Ctrl+C)
+3. Vider le clone : `sudo rm -rf /var/www/html/*`
+4. Relancer SET → Credential Harvester
+5. IP : `127.0.0.1` ou `172.17.216.224` (sans faute de frappe)
+6. URL a cloner : `https://bmouchet04.github.io/Test/login-harvester.html`
+7. Ouvrir `http://127.0.0.1/` dans le navigateur
+8. Remplir e-mail + mot de passe → **Suivant**
+
+Resultat attendu dans SET :
+
+```text
+POST / HTTP/1.1
+username=...&password=...
+```
+
+## Alternative : IMPORT
+
+Si le clone echoue encore :
+
+1. Copier `login-harvester.html` dans le dossier d'import SET
+2. Choisir **IMPORT** au lieu de cloner une URL
+
+## Python (sans SET)
 
 ```powershell
 python server.py
 ```
 
-Ouvrir : `http://127.0.0.1:8765/login-simulation.html`
+→ `http://127.0.0.1:8765/login-simulation.html` (version 2 etapes + API JSON)
 
-Resultat dans le terminal Python :
-```text
-[CAPTURE] email / password
-```
-
-## Les 3 erreurs frequentes
-
-1. Tester sur **GitHub Pages** au lieu de l'IP SET (port 80)
-2. Ne pas aller jusqu'a l'etape **mot de passe**
-3. Cloner une **ancienne version** non poussee sur GitHub
+Identifiants fictifs uniquement pour le devoir.
